@@ -7,6 +7,7 @@ import jakarta.annotation.Resource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.UrlResource
 import org.springframework.stereotype.Service
+import org.springframework.util.DigestUtils
 import org.springframework.util.StringUtils
 import org.springframework.web.multipart.MultipartFile
 import java.io.IOException
@@ -15,6 +16,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 @Service
 class FileStorageService(var fileStorageLocation: Path)
@@ -34,14 +37,22 @@ class FileStorageService(var fileStorageLocation: Path)
     }
 
     fun storeFile(file: MultipartFile): String{
-        val fileName: String = StringUtils.cleanPath(file.originalFilename!!)
+        var fileName: String = StringUtils.cleanPath(file.originalFilename!!)
 
         try {
-            if(fileName.contains("..")){
+            if(fileName.contains("..")) {
                 throw FileStorageException("Sorry! Filename container invalid path sequence $fileName")
             }
+
+            var localDateTime: Long = LocalDateTime.now().atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant().toEpochMilli()
+            val splitFileName = fileName.split(".") //[name,extension]
+            val fileExtension = splitFileName[1]
+            val hexFileName = DigestUtils.md5DigestAsHex(splitFileName[1].byteInputStream()).substring(0,16)
+            fileName = "photo-$localDateTime-$hexFileName.$fileExtension"
+
             val targetLocation: Path = fileStorageLocation.resolve(fileName)
             Files.copy(file.inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING)
+
             return fileName;
         }catch (ex: IOException){
             throw FileStorageException("Could not store file $fileName. Please try again!", ex)

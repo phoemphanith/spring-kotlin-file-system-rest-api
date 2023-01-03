@@ -61,14 +61,11 @@ class FileController(private val fileStorageService: FileStorageService) {
     }
 
     @RequestMapping(value = ["/uploads/{fileName:.+}"], method = [RequestMethod.GET], produces = [MediaType.IMAGE_JPEG_VALUE])
-    @Throws(
-        IOException::class
-    )
+    @Throws(IOException::class)
     fun getImage(@PathVariable fileName: String): ResponseEntity<ByteArray?>? {
         val resource: UrlResource? = fileStorageService.loadFileAsResource(fileName)
         val imgFile = resource?.inputStream
         val bytes = StreamUtils.copyToByteArray(imgFile)
-        println(bytes)
         return ResponseEntity
             .ok()
             .contentType(MediaType.IMAGE_JPEG)
